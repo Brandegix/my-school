@@ -40,12 +40,13 @@ const NavBar = ({ scrolled, isMenuOpen, toggleMenu }) => {
              width: 100%;
              z-index: 50;
              transition: all 0.3s ease-in-out;
-             background-color: transparent;
+             background-color: transparent; /* Default: transparent */
            }
 
+           /* This class is applied when 'scrolled' prop is true */
            .navbar.scrolled {
-             background-color: rgba(15, 23, 42, 0.95); /* slate-900/95 */
-             backdrop-filter: blur(12px);
+             background-color: rgba(15, 23, 42, 0.95); /* slate-900/95 - Dark background */
+             backdrop-filter: blur(12px); /* Blur effect */
              box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
            }
 
@@ -244,11 +245,10 @@ const NavBar = ({ scrolled, isMenuOpen, toggleMenu }) => {
 
           <div className="navbar-menu-desktop">
             <div className="navbar-links">
-              <a href="#" className="navbar-link">Courses</a>
-              <a href="#" className="navbar-link">Mentors</a>
-              <a href="#" className="navbar-link">Community</a>
-              <a href="#" className="navbar-link">Pricing</a>
-              <a href="#" className="navbar-link">Blog</a>
+              <a href="/" className="navbar-link">Home </a>
+              <a href="/" className="navbar-link">About Us</a>
+              <a href="/" className="navbar-link">Pricing</a>
+              <a href="/contact" className="navbar-link">Contact Us</a>
             </div>
           </div>
 

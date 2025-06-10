@@ -7,6 +7,20 @@ const HomePage = () => {
   const [activeTestimonial, setActiveTestimonial] = useState(0);
   const [scrollY, setScrollY] = useState(0);
 
+   const [scrolled, setScrolled] = useState(false); // State for NavBar scroll effect
+  
+    useEffect(() => {
+      const handleScroll = () => {
+        const offset = window.scrollY;
+        if (offset > 50) {
+          setScrolled(true);
+        } else {
+          setScrolled(false);
+        }
+      };
+      window.addEventListener('scroll', handleScroll);
+      return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
     window.addEventListener('scroll', handleScroll);
@@ -49,7 +63,7 @@ const HomePage = () => {
       price: "1,999 MAD", // Adjusted price for Morocco
       duration: "16 weeks",
       level: "Advanced",
-      image: "🤖",
+      image: "",
       gradientClass: "gradient-purple-pink"
     },
     {
@@ -60,7 +74,7 @@ const HomePage = () => {
       price: "1,499 MAD", // Adjusted price for Morocco
       duration: "12 weeks",
       level: "Intermediate",
-      image: "💻",
+      image: "",
       gradientClass: "gradient-blue-cyan"
     },
     {
@@ -71,7 +85,7 @@ const HomePage = () => {
       price: "1,799 MAD", // Adjusted price for Morocco
       duration: "14 weeks",
       level: "Beginner",
-      image: "📊",
+      image: "",
       gradientClass: "gradient-green-teal"
     }
   ];
@@ -1094,7 +1108,7 @@ const HomePage = () => {
 
       {/* Navigation */}
      
-      <NavBar />
+      <NavBar scrolled={scrolled} />
       {/* Hero Section */}
       <section className="hero-section">
         <div className="hero-content">
