@@ -1,0 +1,326 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+:root {
+  --color-slate-900: #0f172a;
+  --color-purple-900: rgb(23, 0, 40);
+  --color-purple-500: #a855f7;
+  --color-purple-400: #c084fc;
+  --color-purple-300: #d8b4fe;
+  --color-purple-200: #e9d5ff;
+  --color-pink-500: #ec4899;
+  --color-pink-400: #f472b6;
+  --color-blue-500: #3b82f6;
+  --color-blue-400: #60a5fa;
+  --color-cyan-500: #06b6d4;
+  --color-cyan-400: #22d3ee;
+  --color-green-500: #22c55e;
+  --color-green-400: #4ade80;
+  --color-teal-500: #14b8a6;
+  --color-teal-400: #2dd4bf;
+  --color-gray-900: #111827;
+  --color-gray-800: #1f2937;
+  --color-gray-700: #374151;
+  --color-gray-600: #4b5563;
+  --color-gray-400: #9ca3af;
+  --color-gray-300: #d1d5db;
+  --color-gray-200: #e5e7eb;
+  --color-yellow-400: #facc15;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  color: white;
+  background: linear-gradient(135deg, var(--color-slate-900) 0%, var(--color-purple-900) 50%, var(--color-slate-900) 100%);
+}
+
+.container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: center;
+  width: 1270px;
+  overflow: hidden;
+}
+
+/* Animated Background Elements */
+.backgroundElements {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.backgroundElement {
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  mix-blend-mode: multiply;
+  filter: blur(48px);
+  opacity: 0.7;
+  animation: contactPulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.backgroundElement:nth-child(1) {
+  top: -160px;
+  right: -160px;
+  background-color: var(--color-purple-500);
+}
+
+.backgroundElement:nth-child(2) {
+  bottom: -160px;
+  left: -160px;
+  background-color: var(--color-pink-500);
+  animation-delay: 2s;
+}
+
+.backgroundElement:nth-child(3) {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: var(--color-blue-500);
+  opacity: 0.5;
+  animation-delay: 4s;
+}
+
+@keyframes contactPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+/* Navbar Styles */
+.navbarContainer {
+  position: sticky;
+  top: 0;
+  width: 100%;
+  z-index: 50;
+  background-color: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(8px);
+}
+
+/* Main Content Wrapper */
+.mainContentWrapper {
+  flex: 1;
+  position: relative;
+  z-index: 10;
+  padding-top: 64px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+/* Footer Styles */
+.footerContainer {
+  position: relative;
+  z-index: 10;
+  background-color: var(--color-slate-900);
+  padding: 2rem 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Contact Section */
+.contactSection {
+  padding-top: 5rem;
+  padding-bottom: 5rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  max-width: 1280px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .contactSection {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .contactSection {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+.headerContent {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
+.pageTitle {
+  font-size: 3rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.titleGradient {
+  background-image: linear-gradient(to right, var(--color-purple-400), var(--color-pink-400));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+
+.pageDescription {
+  font-size: 1.25rem;
+  color: var(--color-gray-300);
+  max-width: 672px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.gridLayout {
+  display: grid;
+  gap: 2rem;
+}
+
+@media (min-width: 1024px) {
+  .gridLayout {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Contact Info Card */
+.infoCard {
+  background-color: rgba(31, 41, 55, 0.5);
+  backdrop-filter: blur(4px);
+  border-radius: 1rem;
+  padding: 2.5rem;
+  border: 1px solid rgba(255,255,255,0.05);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.infoItem {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.infoItem:last-child {
+  margin-bottom: 0;
+}
+
+.iconWrapper {
+  background-image: linear-gradient(to right, var(--color-purple-500), var(--color-pink-500));
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-right: 1rem;
+}
+
+.icon {
+  color: white;
+  width: 24px;
+  height: 24px;
+}
+
+.infoDetails {
+  display: flex;
+  flex-direction: column;
+  color: var(--color-gray-300);
+}
+
+.infoDetails strong {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 0.25rem;
+}
+
+.infoDetails span {
+  font-size: 0.95rem;
+}
+
+/* Contact Form */
+.formCard {
+  background-color: rgba(31, 41, 55, 0.5);
+  backdrop-filter: blur(4px);
+  border-radius: 1rem;
+  padding: 2.5rem;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.formGroup {
+  margin-bottom: 1.5rem;
+}
+
+.formGroup label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-gray-300);
+  margin-bottom: 0.5rem;
+}
+
+.formGroup input,
+.formGroup textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-gray-600);
+  background-color: var(--color-gray-800);
+  color: white;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.formGroup input:focus,
+.formGroup textarea:focus {
+  outline: none;
+  border-color: var(--color-purple-500);
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.5);
+}
+
+.formGroup textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.submitButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  font-size: 1.125rem;
+  color: white;
+  background-image: linear-gradient(to right, var(--color-purple-500), var(--color-pink-500));
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease, transform 0.3s ease;
+}
+
+.submitButton:hover {
+  background-image: linear-gradient(to right, var(--color-purple-600), var(--color-pink-600));
+  transform: scale(1.02);
+  box-shadow: 0 10px 15px -3px rgba(168, 85, 247, 0.25);
+}
+
+.submitButton svg {
+  margin-left: 0.5rem;
+  width: 20px;
+  height: 20px;
+}
