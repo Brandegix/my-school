@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import Home from "../components/home"; // Corrected component name to follow convention
 import ContactUsPage from "../components/ContactUsPage"; // Import the ContactUsPage component
 import TailwindTest from '../components/TailwindTest';
+import AuthPage  from '../components/AuthPage';
 const AppRoutes = () => {
   return (
     <Routes>
@@ -10,6 +11,7 @@ const AppRoutes = () => {
  <Route path="/TailwindTest" element={<TailwindTest />} />
       {/* New route for the Contact Us page */}
       <Route path="/contact" element={<ContactUsPage />} />
+       <Route path="/AuthPage" element={<AuthPage />} />
     </Routes>
   );
 };

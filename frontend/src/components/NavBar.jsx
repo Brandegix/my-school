@@ -1,7 +1,7 @@
 import React from 'react';
 import { Search, Bell, User, Menu, X, Zap } from 'lucide-react';
 import styles from './NavBar.module.css';
-
+import { Link } from 'react-router-dom';
 const NavBar = ({ scrolled, isMenuOpen, toggleMenu }) => {
   return (
     <nav className={`${styles.navbar} ${scrolled ? styles.scrolled : ''}`}>
@@ -29,7 +29,9 @@ const NavBar = ({ scrolled, isMenuOpen, toggleMenu }) => {
           <button type="button" className={styles.navbarActionButtonIcon} aria-label="Notifications">
             <Bell />
           </button>
-          <button className={styles.navbarSigninButton}>Sign In</button>
+          <Link to="/AuthPage" className={styles.navbarSigninButton}>
+  Sign In
+</Link>
           <button className={styles.navbarStartLearningButton}>Start Learning</button>
         </div>
 
