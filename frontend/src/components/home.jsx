@@ -125,7 +125,7 @@ const HomePage = () => {
             Dive into learning experiences designed to get you job-ready in today's fastest-growing industries. From coding to data science, your career transformation begins here.
           </p>
           <div className={styles.heroActions}>
-            <a href="#" className={`${styles.heroButton} ${styles.heroButtonPrimary}`}>
+            <a href="/AuthPage" className={`${styles.heroButton} ${styles.heroButtonPrimary}`}>
               Explore Courses <ArrowRight className={styles.arrowIcon} />
             </a>
             <a href="#" className={`${styles.heroButton} ${styles.heroButtonSecondary}`}>
@@ -250,12 +250,10 @@ const HomePage = () => {
               Don't just learn, thrive!
             </p>
             <div className={styles.ctaButtons}>
-              <a href="#" className={`${styles.ctaButton} ${styles.ctaButtonPrimary}`}>
+              <a href="/AuthPage" className={`${styles.ctaButton} ${styles.ctaButtonPrimary}`}>
                 Get Started for Free
               </a>
-              <a href="#" className={`${styles.ctaButton} ${styles.ctaButtonSecondary}`}>
-                Contact Sales
-              </a>
+              
             </div>
           </div>
         </div>

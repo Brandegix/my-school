@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Lock, User, Phone, Eye, EyeOff, ArrowRight, LogIn, UserPlus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -7,7 +8,8 @@ const AuthPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -72,6 +74,8 @@ const AuthPage = () => {
         if (isLogin) {
           // Redirect or handle successful login
           console.log('Login successful:', data.user);
+          navigate('/UserProfiles'); // or whatever page you want to redirect to
+
         } else {
           // Switch to login after successful registration
           setTimeout(() => {
@@ -304,7 +308,6 @@ const AuthPage = () => {
             </p>
           </div>
 
-          {/* Social Login Divider */}
          
         </div>
       </div>
