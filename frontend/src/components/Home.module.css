@@ -126,7 +126,7 @@
   transform: translate(-50%, -50%);
   background-color: var(--color-blue-500);
   opacity: 0.5;
-  animation-delay: 4s;
+  animation-delay: 0.25s;
 }
 
 @keyframes pulse {

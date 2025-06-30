@@ -17,7 +17,6 @@ const NavBar = ({ scrolled, isMenuOpen, toggleMenu }) => {
           <div className={styles.navbarLinks}>
             <a href="/" className={styles.navbarLink}>Home</a>
             <a href="/" className={styles.navbarLink}>About Us</a>
-            <a href="/" className={styles.navbarLink}>Pricing</a>
             <a href="/contact" className={styles.navbarLink}>Contact Us</a>
           </div>
         </div>
@@ -56,7 +55,6 @@ const NavBar = ({ scrolled, isMenuOpen, toggleMenu }) => {
           <a href="#" className={styles.mobileMenuLink}>Courses</a>
           <a href="#" className={styles.mobileMenuLink}>Mentors</a>
           <a href="#" className={styles.mobileMenuLink}>Community</a>
-          <a href="#" className={styles.mobileMenuLink}>Pricing</a>
           <a href="#" className={styles.mobileMenuLink}>Blog</a>
           <a href="#" className={styles.mobileMenuLink}>Sign In</a>
           <a href="#" className={styles.mobileMenuLink}>Start Learning</a>
