@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Users, BookOpen, Award, Globe, Star, HeartHandshake, Target } from 'lucide-react';
 import NavBar from "./NavBar";
 import Footer from "./Footer";
@@ -19,6 +19,21 @@ const stats = [
 ];
 
 const AboutUsPage = () => {
+  const [scrolled, setScrolled] = useState(false);
+  
+    useEffect(() => {
+      const handleScroll = () => {
+        const offset = window.scrollY;
+        if (offset > 50) {
+          setScrolled(true);
+        } else {
+          setScrolled(false);
+        }
+      };
+      window.addEventListener('scroll', handleScroll);
+      return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
   return (
     
     <div className="min-h-screen text-white overflow-x-hidden relative font-sans" style={{background: 'linear-gradient(135deg, #0f172a 0%, rgb(23, 0, 40) 50%, #0f172a 100%)'}}>
@@ -28,7 +43,7 @@ const AboutUsPage = () => {
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-400 rounded-full opacity-20 blur-3xl animate-pulse" />
         <div className="absolute top-1/2 left-1/2 w-60 h-60 bg-pink-400 rounded-full opacity-20 blur-2xl animate-pulse" style={{transform: 'translate(-50%, -50%)'}} />
       </div>
-      <NavBar scrolled={false} />
+      <NavBar scrolled={scrolled} />
       {/* Hero Section */}
       <section className="max-w-5xl mx-auto px-4 py-20 text-center relative z-10">
         <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full mb-6 shadow-lg animate-fade-in">
