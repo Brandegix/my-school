@@ -400,7 +400,7 @@ const ContactUsPage = () => {
                   </div>
                   <div className="contact-info-details">
                     <strong>Visit Us</strong>
-                    <span>123 Learnify , Casablanca, Morocco</span>
+                    <span>123 Learnify maarif, Casablanca, Morocco</span>
                   </div>
                 </div>
               </div>
@@ -411,15 +411,15 @@ const ContactUsPage = () => {
               <form>
                 <div className="contact-form-group">
                   <label htmlFor="name">Your Name</label>
-                  <input type="text" id="name" name="name" placeholder="John Doe" required />
+                  <input type="text" id="name" name="name" placeholder="ex :oumaima ab" required />
                 </div>
                 <div className="contact-form-group">
                   <label htmlFor="email">Your Email</label>
-                  <input type="email" id="email" name="email" placeholder="john.doe@example.com" required />
+                  <input type="email" id="email" name="email" placeholder="ex :oumaima@example.com" required />
                 </div>
                 <div className="contact-form-group">
                   <label htmlFor="subject">Subject</label>
-                  <input type="text" id="subject" name="subject" placeholder=" about courses" required />
+                  <input type="text" id="subject" name="subject" placeholder=" About courses..." required />
                 </div>
                 <div className="contact-form-group">
                   <label htmlFor="message">Your Message</label>

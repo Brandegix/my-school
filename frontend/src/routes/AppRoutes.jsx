@@ -1,7 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import Home from "../components/home"; // Corrected component name to follow convention
 import ContactUsPage from "../components/ContactUsPage"; // Import the ContactUsPage component
-
 const AppRoutes = () => {
   return (
     <Routes>

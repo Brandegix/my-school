@@ -1,0 +1,402 @@
+/* CSS Variables */
+:root {
+  --color-slate-900: #0f172a;
+  --color-purple-900: rgb(23, 0, 40);
+  --color-purple-500: #a855f7;
+  --color-purple-600: #9333ea;
+  --color-purple-400: #c084fc;
+  --color-purple-300: #d8b4fe;
+  --color-purple-200: #e9d5ff;
+  --color-pink-500: rgb(0, 0, 0);
+  --color-pink-600: rgb(255, 255, 255);
+  --color-pink-400: rgb(255, 255, 255);
+  --color-pink-200: #fbcfe8;
+  --color-blue-500: #230035;
+  --color-blue-400: #60a5fa;
+  --color-cyan-500: #06b6d4;
+  --color-cyan-400: #22d3ee;
+  --color-green-500: #22c55e;
+  --color-green-400: #4ade80;
+  --color-teal-500: #14b8a6;
+  --color-teal-400: #2dd4bf;
+  --color-gray-900: #111827;
+  --color-gray-800: #1f2937;
+  --color-gray-700: #374151;
+  --color-gray-600: #4b5563;
+  --color-gray-400: #9ca3af;
+  --color-gray-300: #d1d5db;
+  --color-gray-200: #e5e7eb;
+  --color-yellow-400: #facc15;
+}
+
+/* Screen reader only */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Navigation */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 50;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background-color: transparent;
+}
+
+.navbar.scrolled {
+  background-color: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.navbarContent {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Brand */
+.navbarBrand {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.navbarLogoWrap {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, var(--color-purple-500), var(--color-pink-500));
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 8px rgba(168, 85, 247, 0.3);
+  transition: transform 0.2s ease;
+}
+
+.navbarLogoWrap:hover {
+  transform: scale(1.05);
+}
+
+.navbarLogoIcon {
+  width: 24px;
+  height: 24px;
+  color: white;
+}
+
+.navbarTitle {
+  margin-left: 12px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--color-purple-400), var(--color-pink-400));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: -0.025em;
+}
+
+/* Desktop Menu */
+.navbarMenuDesktop {
+  display: none;
+}
+
+.navbarLinks {
+  margin-left: 2.5rem;
+  display: flex;
+  align-items: baseline;
+  gap: 2rem;
+}
+
+.navbarLink {
+  color: var(--color-gray-300);
+  transition: all 0.2s ease;
+  text-decoration: none;
+  font-weight: 500;
+  position: relative;
+  padding: 0.5rem 0;
+}
+
+.navbarLink:hover {
+  color: white;
+  transform: translateY(-1px);
+}
+
+.navbarLink::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: 0;
+  left: 0;
+  background: linear-gradient(135deg, var(--color-purple-500), var(--color-pink-500));
+  transition: width 0.3s ease;
+}
+
+.navbarLink:hover::after {
+  width: 100%;
+}
+
+/* Desktop Actions */
+.navbarActionsDesktop {
+  display: none;
+  align-items: center;
+  gap: 1rem;
+}
+
+.navbarActionButtonIcon {
+  color: var(--color-gray-300);
+  transition: all 0.2s ease;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.navbarActionButtonIcon:hover {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: scale(1.1);
+}
+
+.navbarActionButtonIcon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.navbarSigninButton {
+  color: var(--color-gray-300);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--color-gray-600);
+  background: rgba(255, 255, 255, 0.05);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  font-weight: 500;
+  backdrop-filter: blur(8px);
+}
+
+.navbarSigninButton:hover {
+  border-color: var(--color-purple-500);
+  color: white;
+  background: rgba(168, 85, 247, 0.1);
+  transform: translateY(-1px);
+}
+
+.navbarStartLearningButton {
+  background: linear-gradient(135deg, var(--color-purple-500), var(--color-pink-500));
+  padding: 0.5rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 8px rgba(168, 85, 247, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.navbarStartLearningButton:hover {
+  background: linear-gradient(135deg, var(--color-purple-600), var(--color-pink-600));
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(168, 85, 247, 0.4);
+}
+
+.navbarStartLearningButton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s ease;
+}
+
+.navbarStartLearningButton:hover::before {
+  left: 100%;
+}
+
+/* Mobile Toggle */
+.navbarMobileToggle {
+  display: block;
+}
+
+.navbarMobileButton {
+  color: var(--color-gray-300);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.navbarMobileButton:hover {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.navbarMobileButton svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* Mobile Menu */
+.mobileMenu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  width: 100%;
+  background-color: rgba(15, 23, 42, 0.98);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  z-index: 40;
+  min-height: fit-content;
+}
+
+.mobileMenu.open {
+  display: block;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mobileMenuContent {
+  padding: 1rem 0;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.mobileMenuLink {
+  display: block;
+  padding: 1rem 1.5rem;
+  color: var(--color-gray-300);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+  background-color: transparent;
+}
+
+.mobileMenuLink:hover,
+.mobileMenuLink:focus {
+  color: white;
+  background-color: rgba(168, 85, 247, 0.1);
+  border-left-color: var(--color-purple-500);
+  transform: translateX(8px);
+}
+
+.mobileMenuLink:active {
+  background-color: rgba(168, 85, 247, 0.2);
+}
+
+/* Responsive Design */
+@media (min-width: 640px) {
+  .navbarContent {
+    padding: 0 1.5rem;
+  }
+  
+  .navbarTitle {
+    font-size: 1.75rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .navbarMenuDesktop {
+    display: block;
+  }
+  
+  .navbarActionsDesktop {
+    display: flex;
+  }
+  
+  .navbarMobileToggle {
+    display: none;
+  }
+  
+  .mobileMenu {
+    display: none !important;
+  }
+  
+  .mobileMenu.open {
+    display: none !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .navbarContent {
+    padding: 0 2rem;
+  }
+  
+  .navbarLinks {
+    gap: 2.5rem;
+  }
+  
+  .navbarActionsDesktop {
+    gap: 1.25rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .navbarContent {
+    padding: 0 3rem;
+  }
+}
+
+/* Mobile-first responsive adjustments */
+@media (max-width: 479px) {
+  .navbarContent {
+    padding: 0 0.75rem;
+    height: 56px;
+  }
+  
+  .navbarTitle {
+    font-size: 1.25rem;
+  }
+  
+  .navbarLogoWrap {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .navbarLogoIcon {
+    width: 20px;
+    height: 20px;
+  }
+}
