@@ -4,6 +4,8 @@ import ContactUsPage from "../components/ContactUsPage"; // Import the ContactUs
 import TailwindTest from '../components/TailwindTest';
 import AuthPage  from '../components/AuthPage';
 import UserProfiles from '../components/UserProfiles.jsx';
+import AdminCourseManagement from '../components/AdminCourseManagement.jsx';
+
 const AppRoutes = () => {
   return (
     <Routes>
@@ -14,6 +16,7 @@ const AppRoutes = () => {
       <Route path="/contact" element={<ContactUsPage />} />
        <Route path="/AuthPage" element={<AuthPage />} />
               <Route path="/UserProfiles" element={<UserProfiles />} />
+              <Route path="/AdminCourseManagement" element={<AdminCourseManagement />} />
 
     </Routes>
   );
