@@ -9,6 +9,8 @@
 from flask import Flask, request, jsonify, session, send_from_directory
 from flask_cors import CORS
 from flask_mail import Mail, Message
+import pymysql
+pymysql.install_as_MySQLdb()
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from werkzeug.utils import secure_filename
@@ -36,7 +38,7 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
 
 # Database configuration
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://postgres:password@localhost:5432/learning_platform')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # File upload configuration
@@ -683,3 +685,737 @@ def add_course_review(course_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": "Failed to add review"}), 500
+
+# Admin Course Management Routes
+@app.route('/api/admin/courses', methods=['GET'])
+@admin_required
+def admin_get_courses():
+    """Get all courses (published and unpublished) for admin"""
+    page = request.args.get('page', 1, type=int)
+    per_page = min(request.args.get('per_page', 20, type=int), 100)
+    search = request.args.get('search', '')
+    status = request.args.get('status', '')  # published, unpublished, all
+    
+    query = Course.query
+    
+    # Apply filters
+    if search:
+        query = query.filter(Course.title.ilike(f'%{search}%'))
+    
+    if status == 'published':
+        query = query.filter(Course.is_published == True)
+    elif status == 'unpublished':
+        query = query.filter(Course.is_published == False)
+    
+    query = query.order_by(Course.created_at.desc())
+    courses = query.paginate(page=page, per_page=per_page, error_out=False)
+    
+    return jsonify({
+        "courses": [course.to_dict(include_lessons=True) for course in courses.items],
+        "pagination": {
+            "page": courses.page,
+            "per_page": courses.per_page,
+            "total": courses.total,
+            "pages": courses.pages,
+            "has_next": courses.has_next,
+            "has_prev": courses.has_prev
+        }
+    }), 200
+
+@app.route('/api/admin/courses', methods=['POST'])
+@admin_required
+def admin_create_course():
+    """Create a new course"""
+    user = get_current_user()
+    data = request.get_json()
+    
+    # Validation
+    required_fields = ['title', 'description', 'price', 'category']
+    for field in required_fields:
+        if not data.get(field):
+            return jsonify({"error": f"{field} is required"}), 400
+    
+    try:
+        price = float(data['price'])
+        if price < 0:
+            return jsonify({"error": "Price must be non-negative"}), 400
+    except (ValueError, TypeError):
+        return jsonify({"error": "Invalid price format"}), 400
+    
+    course = Course(
+        title=data['title'],
+        description=data['description'],
+        short_description=data.get('shortDescription', ''),
+        price=Decimal(str(price)),
+        category=data['category'],
+        difficulty_level=data.get('difficultyLevel', 'Beginner'),
+        duration_hours=data.get('durationHours', 0),
+        is_published=data.get('isPublished', False),
+        created_by=user.id
+    )
+    
+    try:
+        db.session.add(course)
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Course created successfully",
+            "course": course.to_dict()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Failed to create course"}), 500
+
+@app.route('/api/admin/courses/<int:course_id>', methods=['PUT'])
+@admin_required
+def admin_update_course(course_id):
+    """Update an existing course"""
+    course = Course.query.get_or_404(course_id)
+    data = request.get_json()
+    
+    # Update fields if provided
+    if 'title' in data:
+        course.title = data['title']
+    if 'description' in data:
+        course.description = data['description']
+    if 'shortDescription' in data:
+        course.short_description = data['shortDescription']
+    if 'price' in data:
+        try:
+            price = float(data['price'])
+            if price < 0:
+                return jsonify({"error": "Price must be non-negative"}), 400
+            course.price = Decimal(str(price))
+        except (ValueError, TypeError):
+            return jsonify({"error": "Invalid price format"}), 400
+    if 'category' in data:
+        course.category = data['category']
+    if 'difficultyLevel' in data:
+        course.difficulty_level = data['difficultyLevel']
+    if 'durationHours' in data:
+        course.duration_hours = data['durationHours']
+    if 'isPublished' in data:
+        course.is_published = data['isPublished']
+    
+    course.updated_at = datetime.utcnow()
+    
+    try:
+        db.session.commit()
+        return jsonify({
+            "message": "Course updated successfully",
+            "course": course.to_dict()
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Failed to update course"}), 500
+
+@app.route('/api/admin/courses/<int:course_id>', methods=['DELETE'])
+@admin_required
+def admin_delete_course(course_id):
+    """Delete a course"""
+    course = Course.query.get_or_404(course_id)
+    
+    try:
+        db.session.delete(course)
+        db.session.commit()
+        return jsonify({"message": "Course deleted successfully"}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Failed to delete course"}), 500
+
+@app.route('/api/admin/lessons', methods=['POST'])
+@admin_required
+def admin_create_lesson():
+    """Create a new lesson for a course"""
+    try:
+        user = get_current_user()
+        data = request.get_json()
+        
+        # Debug logging
+        print(f"Received lesson data: {data}")
+        print(f"User: {user.id if user else 'None'}")
+        
+        # Validation
+        required_fields = ['courseId', 'title']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({"error": f"{field} is required"}), 400
+        
+        # Validate course exists and user has permission
+        course = Course.query.filter_by(id=data['courseId']).first()
+        if not course:
+            print(f"Course not found with ID: {data['courseId']}")
+            return jsonify({"error": "Course not found"}), 404
+        
+        print(f"Found course: {course.title}, created_by: {course.created_by}")
+        
+        # Check if user is the course creator (optional - adjust based on your permissions)
+        if course.created_by != user.id:
+            print(f"Authorization failed. Course creator: {course.created_by}, Current user: {user.id}")
+            return jsonify({"error": "Not authorized to add lessons to this course"}), 403
+        
+        # Validate and process duration
+        duration_minutes = 0
+        if data.get('durationMinutes'):
+            try:
+                duration_value = data['durationMinutes']
+                if duration_value != '' and duration_value is not None:
+                    duration_minutes = int(duration_value)
+                    if duration_minutes < 0:
+                        return jsonify({"error": "Duration must be non-negative"}), 400
+            except (ValueError, TypeError) as e:
+                print(f"Duration validation error: {e}, value: {data.get('durationMinutes')}")
+                return jsonify({"error": "Invalid duration format"}), 400
+        
+        # Validate and process order index
+        order_index = 0
+        if data.get('orderIndex') is not None:
+            try:
+                order_value = data['orderIndex']
+                if order_value != '' and order_value is not None:
+                    order_index = int(order_value)
+                    if order_index < 0:
+                        return jsonify({"error": "Order index must be non-negative"}), 400
+            except (ValueError, TypeError) as e:
+                print(f"Order index validation error: {e}, value: {data.get('orderIndex')}")
+                return jsonify({"error": "Invalid order index format"}), 400
+        
+        # Validate video URL format if provided
+        video_url = data.get('videoUrl', '').strip()
+        if video_url:
+            # Basic URL validation (you might want to use a more robust validator)
+            if not (video_url.startswith('http://') or video_url.startswith('https://')):
+                return jsonify({"error": "Invalid video URL format"}), 400
+        
+        # Create the lesson
+        lesson_data = {
+            'course_id': data['courseId'],
+            'title': data['title'].strip(),
+            'description': data.get('description', '').strip(),
+            'video_url': video_url if video_url else None,
+            'duration_minutes': duration_minutes,
+            'order_index': order_index,
+            'is_free': data.get('isFree', False)
+        }
+        
+        print(f"Creating lesson with data: {lesson_data}")
+        
+        lesson = Lesson(**lesson_data)
+        
+        db.session.add(lesson)
+        db.session.flush()  # This will assign an ID to the lesson
+        
+        # Update course's updated_at timestamp
+        course.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        print(f"Lesson created successfully with ID: {lesson.id}")
+        
+        return jsonify({
+            "message": "Lesson created successfully",
+            "lesson": lesson.to_dict()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error creating lesson: {str(e)}")
+        print(f"Exception type: {type(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Failed to create lesson: {str(e)}"}), 500
+
+
+@app.route('/api/admin/lessons', methods=['GET'])
+def test_route():
+    return jsonify({"message": "API is working"})
+
+# Optional: Endpoint to update lesson order
+@app.route('/api/admin/lessons/<int:lesson_id>', methods=['PUT'])
+@admin_required
+def admin_update_lesson(lesson_id):
+    """Update a lesson"""
+    user = get_current_user()
+    data = request.get_json()
+    
+    # Find the lesson
+    lesson = Lesson.query.filter_by(id=lesson_id).first()
+    if not lesson:
+        return jsonify({"error": "Lesson not found"}), 404
+    
+    # Check if user has permission
+    course = Course.query.filter_by(id=lesson.course_id).first()
+    if course.created_by != user.id:
+        return jsonify({"error": "Not authorized to update this lesson"}), 403
+    
+    # Update fields if provided
+    if 'title' in data:
+        if not data['title'].strip():
+            return jsonify({"error": "Title is required"}), 400
+        lesson.title = data['title'].strip()
+    
+    if 'description' in data:
+        lesson.description = data['description'].strip()
+    
+    if 'videoUrl' in data:
+        video_url = data['videoUrl'].strip()
+        if video_url and not (video_url.startswith('http://') or video_url.startswith('https://')):
+            return jsonify({"error": "Invalid video URL format"}), 400
+        lesson.video_url = video_url if video_url else None
+    
+    if 'durationMinutes' in data:
+        try:
+            duration = int(data['durationMinutes'])
+            if duration < 0:
+                return jsonify({"error": "Duration must be non-negative"}), 400
+            lesson.duration_minutes = duration
+        except (ValueError, TypeError):
+            return jsonify({"error": "Invalid duration format"}), 400
+    
+    if 'orderIndex' in data:
+        try:
+            order_index = int(data['orderIndex'])
+            if order_index < 0:
+                return jsonify({"error": "Order index must be non-negative"}), 400
+            lesson.order_index = order_index
+        except (ValueError, TypeError):
+            return jsonify({"error": "Invalid order index format"}), 400
+    
+    if 'isFree' in data:
+        lesson.is_free = bool(data['isFree'])
+    
+    try:
+        db.session.commit()
+        
+        # Update course's updated_at timestamp
+        course.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Lesson updated successfully",
+            "lesson": lesson.to_dict()
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error updating lesson: {str(e)}")
+        return jsonify({"error": "Failed to update lesson"}), 500
+
+
+# Optional: Endpoint to delete a lesson
+@app.route('/api/admin/lessons/<int:lesson_id>', methods=['DELETE'])
+@admin_required
+def admin_delete_lesson(lesson_id):
+    """Delete a lesson"""
+    user = get_current_user()
+    
+    # Find the lesson
+    lesson = Lesson.query.filter_by(id=lesson_id).first()
+    if not lesson:
+        return jsonify({"error": "Lesson not found"}), 404
+    
+    # Check if user has permission
+    course = Course.query.filter_by(id=lesson.course_id).first()
+    if course.created_by != user.id:
+        return jsonify({"error": "Not authorized to delete this lesson"}), 403
+    
+    try:
+        db.session.delete(lesson)
+        db.session.commit()
+        
+        # Update course's updated_at timestamp
+        course.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        return jsonify({"message": "Lesson deleted successfully"}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error deleting lesson: {str(e)}")
+        return jsonify({"error": "Failed to delete lesson"}), 500
+# Course Thumbnail Upload
+@app.route('/api/admin/courses/<int:course_id>/thumbnail', methods=['POST'])
+@admin_required
+def upload_course_thumbnail(course_id):
+    """Upload course thumbnail"""
+    course = Course.query.get_or_404(course_id)
+    
+    if 'thumbnail' not in request.files:
+        return jsonify({"error": "No thumbnail file provided"}), 400
+    
+    file = request.files['thumbnail']
+    if file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
+    
+    if file and file.filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+        filename = secure_filename(f"course_{course_id}_{uuid.uuid4().hex[:8]}.{file.filename.rsplit('.', 1)[1].lower()}")
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'thumbnails', filename)
+        
+        try:
+            file.save(filepath)
+            course.thumbnail_url = f"/api/uploads/thumbnails/{filename}"
+            db.session.commit()
+            
+            return jsonify({
+                "message": "Thumbnail uploaded successfully",
+                "thumbnailUrl": course.thumbnail_url
+            }), 200
+            
+        except Exception as e:
+            return jsonify({"error": "Failed to upload thumbnail"}), 500
+    
+    return jsonify({"error": "Invalid file type. Only PNG and JPG allowed"}), 400
+
+# Lesson Management Routes
+@app.route('/api/admin/courses/<int:course_id>/lessons', methods=['POST'])
+@admin_required
+def admin_add_lesson(course_id):
+    """Add a lesson to a course"""
+    course = Course.query.get_or_404(course_id)
+    data = request.get_json()
+    
+    if not data.get('title'):
+        return jsonify({"error": "Lesson title is required"}), 400
+    
+    # Get the next order index
+    last_lesson = Lesson.query.filter_by(course_id=course_id).order_by(Lesson.order_index.desc()).first()
+    next_order = (last_lesson.order_index + 1) if last_lesson else 1
+    
+    lesson = Lesson(
+        course_id=course_id,
+        title=data['title'],
+        description=data.get('description', ''),
+        duration_minutes=data.get('durationMinutes', 0),
+        order_index=data.get('orderIndex', next_order),
+        is_free=data.get('isFree', False)
+    )
+    
+    try:
+        db.session.add(lesson)
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Lesson added successfully",
+            "lesson": lesson.to_dict()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Failed to add lesson"}), 500
+
+@app.route('/api/admin/lessons/<int:lesson_id>', methods=['PUT'])
+@admin_required
+def admin_update_lessons(lesson_id):
+    """Update a lesson"""
+    lesson = Lesson.query.get_or_404(lesson_id)
+    data = request.get_json()
+    
+    # Update fields if provided
+    if 'title' in data:
+        lesson.title = data['title']
+    if 'description' in data:
+        lesson.description = data['description']
+    if 'durationMinutes' in data:
+        lesson.duration_minutes = data['durationMinutes']
+    if 'orderIndex' in data:
+        lesson.order_index = data['orderIndex']
+    if 'isFree' in data:
+        lesson.is_free = data['isFree']
+    
+    try:
+        db.session.commit()
+        return jsonify({
+            "message": "Lesson updated successfully",
+            "lesson": lesson.to_dict()
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Failed to update lesson"}), 500
+
+@app.route('/api/admin/lessons/<int:lesson_id>', methods=['DELETE'])
+@admin_required
+def admin_delete_lessons(lesson_id):
+    """Delete a lesson"""
+    lesson = Lesson.query.get_or_404(lesson_id)
+    
+    try:
+        db.session.delete(lesson)
+        db.session.commit()
+        return jsonify({"message": "Lesson deleted successfully"}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Failed to delete lesson"}), 500
+
+# Video Upload for Lessons
+@app.route('/api/admin/lessons/<int:lesson_id>/video', methods=['POST'])
+@admin_required
+def upload_lesson_video(lesson_id):
+    """Upload video for a lesson"""
+    lesson = Lesson.query.get_or_404(lesson_id)
+    
+    if 'video' not in request.files:
+        return jsonify({"error": "No video file provided"}), 400
+    
+    file = request.files['video']
+    if file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
+    
+    if file and allowed_file(file.filename):
+        filename = secure_filename(f"lesson_{lesson_id}_{uuid.uuid4().hex[:8]}.{file.filename.rsplit('.', 1)[1].lower()}")
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'videos', filename)
+        
+        try:
+            file.save(filepath)
+            lesson.video_url = f"/api/uploads/videos/{filename}"
+            db.session.commit()
+            
+            return jsonify({
+                "message": "Video uploaded successfully",
+                "videoUrl": lesson.video_url
+            }), 200
+            
+        except Exception as e:
+            return jsonify({"error": "Failed to upload video"}), 500
+    
+    return jsonify({"error": "Invalid file type"}), 400
+
+# Document Upload for Lessons
+@app.route('/api/admin/lessons/<int:lesson_id>/documents', methods=['POST'])
+@admin_required
+def upload_lesson_document(lesson_id):
+    """Upload document for a lesson"""
+    lesson = Lesson.query.get_or_404(lesson_id)
+    
+    if 'document' not in request.files:
+        return jsonify({"error": "No document file provided"}), 400
+    
+    file = request.files['document']
+    if file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
+    
+    title = request.form.get('title', file.filename)
+    
+    if file and allowed_file(file.filename):
+        filename = secure_filename(f"doc_{lesson_id}_{uuid.uuid4().hex[:8]}.{file.filename.rsplit('.', 1)[1].lower()}")
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'documents', filename)
+        
+        try:
+            file.save(filepath)
+            
+            document = LessonDocument(
+                lesson_id=lesson_id,
+                title=title,
+                file_url=f"/api/uploads/documents/{filename}",
+                file_type=file.filename.rsplit('.', 1)[1].lower(),
+                file_size=os.path.getsize(filepath)
+            )
+            
+            db.session.add(document)
+            db.session.commit()
+            
+            return jsonify({
+                "message": "Document uploaded successfully",
+                "document": document.to_dict()
+            }), 201
+            
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"error": "Failed to upload document"}), 500
+    
+    return jsonify({"error": "Invalid file type"}), 400
+
+@app.route('/api/admin/documents/<int:document_id>', methods=['DELETE'])
+@admin_required
+def admin_delete_document(document_id):
+    """Delete a lesson document"""
+    document = LessonDocument.query.get_or_404(document_id)
+    
+    try:
+        # Delete file from filesystem
+        if document.file_url:
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'documents', 
+                                   os.path.basename(document.file_url))
+            if os.path.exists(file_path):
+                os.remove(file_path)
+        
+        db.session.delete(document)
+        db.session.commit()
+        return jsonify({"message": "Document deleted successfully"}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Failed to delete document"}), 500
+
+# User Management Routes
+@app.route('/api/admin/users', methods=['GET'])
+@admin_required
+def admin_get_users():
+    """Get all users for admin"""
+    page = request.args.get('page', 1, type=int)
+    per_page = min(request.args.get('per_page', 20, type=int), 100)
+    search = request.args.get('search', '')
+    
+    query = User.query
+    
+    if search:
+        query = query.filter(
+            db.or_(
+                User.first_name.ilike(f'%{search}%'),
+                User.last_name.ilike(f'%{search}%'),
+                User.email.ilike(f'%{search}%')
+            )
+        )
+    
+    query = query.order_by(User.registration_date.desc())
+    users = query.paginate(page=page, per_page=per_page, error_out=False)
+    
+    return jsonify({
+        "users": [user.to_dict() for user in users.items],
+        "pagination": {
+            "page": users.page,
+            "per_page": users.per_page,
+            "total": users.total,
+            "pages": users.pages,
+            "has_next": users.has_next,
+            "has_prev": users.has_prev
+        }
+    }), 200
+
+@app.route('/api/admin/users/<int:user_id>/toggle-status', methods=['PUT'])
+@admin_required
+def admin_toggle_user_status(user_id):
+    """Toggle user active status"""
+    user = User.query.get_or_404(user_id)
+    current_admin = get_current_user()
+    
+    # Prevent admin from deactivating themselves
+    if user.id == current_admin.id:
+        return jsonify({"error": "Cannot modify your own status"}), 400
+    
+    user.is_active = not user.is_active
+    
+    try:
+        db.session.commit()
+        return jsonify({
+            "message": f"User {'activated' if user.is_active else 'deactivated'} successfully",
+            "user": user.to_dict()
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Failed to update user status"}), 500
+
+# Statistics Routes
+@app.route('/api/admin/statistics', methods=['GET'])
+@admin_required
+def admin_get_statistics():
+    """Get platform statistics"""
+    total_users = User.query.filter_by(is_active=True).count()
+    total_courses = Course.query.count()
+    published_courses = Course.query.filter_by(is_published=True).count()
+    total_enrollments = Enrollment.query.count()
+    
+    # Recent enrollments (last 30 days)
+    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+    recent_enrollments = Enrollment.query.filter(
+        Enrollment.enrolled_at >= thirty_days_ago
+    ).count()
+    
+    # Most popular courses
+    popular_courses = db.session.query(
+        Course.title,
+        db.func.count(Enrollment.id).label('enrollment_count')
+    ).join(Enrollment).group_by(Course.id).order_by(
+        db.func.count(Enrollment.id).desc()
+    ).limit(5).all()
+    
+    return jsonify({
+        "totalUsers": total_users,
+        "totalCourses": total_courses,
+        "publishedCourses": published_courses,
+        "totalEnrollments": total_enrollments,
+        "recentEnrollments": recent_enrollments,
+        "popularCourses": [
+            {"title": course.title, "enrollments": course.enrollment_count}
+            for course in popular_courses
+        ]
+    }), 200
+
+# File Serving Routes
+@app.route('/api/uploads/<path:filename>')
+def serve_uploaded_file(filename):
+    """Serve uploaded files"""
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+# Categories and Utilities
+@app.route('/api/categories', methods=['GET'])
+def get_categories():
+    """Get available course categories"""
+    categories = db.session.query(Course.category).distinct().filter(
+        Course.category.isnot(None),
+        Course.is_published == True
+    ).all()
+    
+    return jsonify({
+        "categories": [cat.category for cat in categories if cat.category]
+    }), 200
+
+# Lesson Reordering
+@app.route('/api/admin/courses/<int:course_id>/lessons/reorder', methods=['PUT'])
+@admin_required
+def admin_reorder_lessons(course_id):
+    """Reorder lessons in a course"""
+    course = Course.query.get_or_404(course_id)
+    data = request.get_json()
+    lesson_orders = data.get('lessonOrders', [])
+    
+    try:
+        for lesson_order in lesson_orders:
+            lesson_id = lesson_order.get('id')
+            new_order = lesson_order.get('orderIndex')
+            
+            lesson = Lesson.query.filter_by(id=lesson_id, course_id=course_id).first()
+            if lesson:
+                lesson.order_index = new_order
+        
+        db.session.commit()
+        return jsonify({"message": "Lessons reordered successfully"}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Failed to reorder lessons"}), 500
+
+# Bulk Operations
+@app.route('/api/admin/courses/bulk-publish', methods=['PUT'])
+@admin_required
+def admin_bulk_publish_courses():
+    """Bulk publish/unpublish courses"""
+    data = request.get_json()
+    course_ids = data.get('courseIds', [])
+    publish_status = data.get('publish', True)
+    
+    try:
+        Course.query.filter(Course.id.in_(course_ids)).update(
+            {Course.is_published: publish_status},
+            synchronize_session=False
+        )
+        db.session.commit()
+        
+        action = "published" if publish_status else "unpublished"
+        return jsonify({
+            "message": f"{len(course_ids)} courses {action} successfully"
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Failed to update courses"}), 500
+
+if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
+    app.run(debug=True)
