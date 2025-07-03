@@ -151,7 +151,7 @@ const UserProfiles = () => {
     }
   };
 
-   const [scrollY, setScrollY] = useState(0);
+    const [scrollY, setScrollY] = useState(0);
     const [scrolled, setScrolled] = useState(false);
     
     useEffect(() => {
@@ -268,6 +268,11 @@ const UserProfiles = () => {
         confirmPassword: ''
       });
     }
+  };
+
+  // Function to navigate to the courses page
+  const handleBrowseCourses = () => {
+    window.location.href = '/CourseBrowser'; // Assuming your courses page is at /courses
   };
 
   if (loading) {
@@ -633,6 +638,15 @@ const UserProfiles = () => {
                     <p className="text-sm">Start learning today!</p>
                   </div>
                 )}
+
+                {/* New button to browse all courses */}
+                <button
+                  onClick={handleBrowseCourses}
+                  className="w-full mt-6 flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                >
+                  <BookOpen className="w-4 h-4 mr-2" />
+                  Browse All Courses
+                </button>
               </div>
             </div>
           </div>

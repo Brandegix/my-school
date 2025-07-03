@@ -392,6 +392,7 @@ def register():
         db.session.rollback()
         return jsonify({"error": "Registration failed"}), 500
 
+
 @app.route('/api/auth/login', methods=['POST'])
 def login():
     data = request.get_json()
@@ -499,6 +500,90 @@ def get_course_details(course_id):
     
     return jsonify(course_data), 200
 
+# Add these routes to your Flask app
+
+@app.route('/api/courses/<int:course_id>/favorite', methods=['POST'])
+@login_required
+def add_to_favorites(course_id):
+    """Add course to user's favorites"""
+    user = get_current_user()
+    course = Course.query.filter_by(id=course_id, is_published=True).first()
+    
+    if not course:
+        return jsonify({"error": "Course not found"}), 404
+    
+    # Check if already in favorites
+    existing_favorite = FavoriteCourse.query.filter_by(user_id=user.id, course_id=course_id).first()
+    if existing_favorite:
+        return jsonify({"error": "Course already in favorites"}), 400
+    
+    favorite = FavoriteCourse(user_id=user.id, course_id=course_id)
+    
+    try:
+        db.session.add(favorite)
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Course added to favorites",
+            "favorite": {
+                "id": favorite.id,
+                "courseId": favorite.course_id,
+                "addedAt": favorite.added_at.isoformat()
+            }
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Failed to add to favorites"}), 500
+
+@app.route('/api/courses/<int:course_id>/favorite', methods=['DELETE'])
+@login_required
+def remove_from_favorites(course_id):
+    """Remove course from user's favorites"""
+    user = get_current_user()
+    favorite = FavoriteCourse.query.filter_by(user_id=user.id, course_id=course_id).first()
+    
+    if not favorite:
+        return jsonify({"error": "Course not in favorites"}), 404
+    
+    try:
+        db.session.delete(favorite)
+        db.session.commit()
+        
+        return jsonify({"message": "Course removed from favorites"}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Failed to remove from favorites"}), 500
+
+@app.route('/api/my-favorites', methods=['GET'])
+@login_required
+def get_my_favorites():
+    """Get user's favorite courses"""
+    user = get_current_user()
+    favorites = FavoriteCourse.query.filter_by(user_id=user.id).order_by(FavoriteCourse.added_at.desc()).all()
+    
+    favorite_courses = []
+    for favorite in favorites:
+        course_dict = favorite.course.to_dict()
+        course_dict['addedToFavoritesAt'] = favorite.added_at.isoformat()
+        favorite_courses.append(course_dict)
+    
+    return jsonify({
+        "favorites": favorite_courses
+    }), 200
+
+@app.route('/api/courses/<int:course_id>/is-favorite', methods=['GET'])
+@login_required
+def check_if_favorite(course_id):
+    """Check if course is in user's favorites"""
+    user = get_current_user()
+    favorite = FavoriteCourse.query.filter_by(user_id=user.id, course_id=course_id).first()
+    
+    return jsonify({
+        "isFavorite": favorite is not None
+    }), 200
+
 @app.route('/api/courses/<int:course_id>/enroll', methods=['POST'])
 @login_required
 def enroll_in_course(course_id):
@@ -532,6 +617,7 @@ def enroll_in_course(course_id):
         db.session.rollback()
         return jsonify({"error": "Enrollment failed"}), 500
 
+
 @app.route('/api/my-courses', methods=['GET'])
 @login_required
 def get_my_courses():
@@ -542,6 +628,39 @@ def get_my_courses():
     return jsonify({
         "enrollments": [enrollment.to_dict() for enrollment in enrollments]
     }), 200
+
+
+# NEW API ROUTE FOR ENROLLMENT REQUEST
+@app.route('/api/enrollment-request', methods=['POST'])
+def handle_enrollment_request():
+    data = request.get_json()
+    user_email = data.get('user_email')
+    course_id = data.get('course_id')
+
+    if not user_email or not course_id:
+        return jsonify({"message": "Missing user email or course ID"}), 400
+
+    course = Course.query.get(course_id)
+    if not course:
+        return jsonify({"message": "Course not found"}), 404
+
+    admin_email = "ouma.abouss@gmail.com"
+    subject = f"Enrollment Request for Course: {course.title}"
+    body = f"User {user_email} is requesting enrollment for the course: {course.title} (ID: {course_id}).\n\n" \
+           f"Course Description: {course.description or 'N/A'}\n" \
+           f"Course Category: {course.category or 'N/A'}\n" \
+           f"Course Price: {float(course.price) if course.price else 'Free'} MAD\n" \
+           f"Course Difficulty: {course.difficulty_level or 'N/A'}\n" \
+           f"Course Duration: {course.duration_hours or 'N/A'} hours"
+
+    try:
+        msg = Message(subject, recipients=[admin_email], sender=app.config['MAIL_DEFAULT_SENDER'])
+        msg.body = body
+        mail.send(msg)
+        return jsonify({"message": "Enrollment request sent successfully!"}), 200
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        return jsonify({"message": "Failed to send enrollment request email."}), 500
 
 @app.route('/api/courses/<int:course_id>/lessons/<int:lesson_id>/progress', methods=['POST'])
 @login_required
