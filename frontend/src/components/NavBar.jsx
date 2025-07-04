@@ -16,7 +16,7 @@ const NavBar = ({ scrolled, isMenuOpen, toggleMenu }) => {
         <div className={styles.navbarMenuDesktop}>
           <div className={styles.navbarLinks}>
             <a href="/" className={styles.navbarLink}>Home</a>
-            <a href="/" className={styles.navbarLink}>About Us</a>
+            <a href="/about" className={styles.navbarLink}>About Us</a>
             <a href="/" className={styles.navbarLink}>Pricing</a>
             <a href="/contact" className={styles.navbarLink}>Contact Us</a>
           </div>

@@ -363,29 +363,34 @@ def register():
     for field in required_fields:
         if not data.get(field):
             return jsonify({"error": f"{field} is required"}), 400
-    
+
+    # Role support: allow 'role' in payload, default to 'user'
+    role = data.get('role', 'user')
+    is_admin = True if role == 'admin' else False
+
     # Check if user exists
     if User.query.filter_by(email=data['email']).first():
         return jsonify({"error": "User already exists with this email"}), 400
-    
+
     # Create user
     user = User(
         first_name=data['firstName'],
         last_name=data['lastName'],
         email=data['email'],
         phone=data.get('phone'),
-        password_hash=hash_password(data['password'])
+        password_hash=hash_password(data['password']),
+        is_admin=is_admin
     )
-    
+
     try:
         db.session.add(user)
         db.session.commit()
-        
+
         return jsonify({
             "message": "Registration successful!",
             "user": user.to_dict()
         }), 201
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": "Registration failed"}), 500

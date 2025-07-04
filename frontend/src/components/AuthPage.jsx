@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Lock, User, Phone, Eye, EyeOff, ArrowRight, LogIn, UserPlus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -7,14 +8,16 @@ const AuthPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
     phone: '',
     password: '',
-    rememberMe: false
+    rememberMe: false,
+    role: 'user' // <-- add this line
   });
 
   const handleInputChange = (e) => {
@@ -54,7 +57,8 @@ const AuthPage = () => {
             lastName: formData.lastName, 
             email: formData.email, 
             phone: formData.phone, 
-            password: formData.password 
+            password: formData.password,
+            role: formData.role // <-- add this
           };
 
       const response = await fetch(endpoint, {
@@ -70,8 +74,11 @@ const AuthPage = () => {
       if (response.ok) {
         setSuccess(data.message);
         if (isLogin) {
-          // Redirect or handle successful login
-          console.log('Login successful:', data.user);
+          if (data.user.isAdmin) {
+            navigate('/AdminCourseManagement');
+          } else {
+            navigate('/UserProfiles');
+          }
         } else {
           // Switch to login after successful registration
           setTimeout(() => {
@@ -304,7 +311,6 @@ const AuthPage = () => {
             </p>
           </div>
 
-          {/* Social Login Divider */}
          
         </div>
       </div>
