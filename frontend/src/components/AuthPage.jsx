@@ -74,7 +74,7 @@ const AuthPage = () => {
         if (isLogin) {
           // Redirect or handle successful login
           console.log('Login successful:', data.user);
-          navigate('/UserProfiles'); // or whatever page you want to redirect to
+          navigate('/StudentDashboard'); // or whatever page you want to redirect to
 
         } else {
           // Switch to login after successful registration

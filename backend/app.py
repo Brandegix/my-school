@@ -393,6 +393,325 @@ def register():
         return jsonify({"error": "Registration failed"}), 500
 
 
+
+ # Student progress
+
+# Helper function to update course progress
+def update_course_progress(user_id, course_id):
+    """Calculate and update course progress percentage"""
+    # Get total lessons in course
+    total_lessons = Lesson.query.filter_by(course_id=course_id).count()
+    
+    if total_lessons == 0:
+        return
+    
+    # Get completed lessons for this user
+    completed_lessons = db.session.query(StudentProgress)\
+        .join(Lesson, StudentProgress.lesson_id == Lesson.id)\
+        .filter(
+            StudentProgress.user_id == user_id,
+            Lesson.course_id == course_id,
+            StudentProgress.completed == True
+        ).count()
+    
+    # Calculate progress percentage
+    progress_percentage = (completed_lessons / total_lessons) * 100
+    
+    # Update enrollment record
+    enrollment = Enrollment.query.filter_by(
+        user_id=user_id,
+        course_id=course_id
+    ).first()
+    
+    if enrollment:
+        enrollment.progress_percentage = progress_percentage
+        
+        # Mark course as completed if 100%
+        if progress_percentage >= 100:
+            enrollment.completed_at = datetime.utcnow()
+
+@app.route('/api/progress/lesson/<int:lesson_id>/complete', methods=['POST'])
+@login_required
+def mark_lesson_complete(lesson_id):
+    user_id = session.get('user_id')
+    data = request.get_json()
+    
+    # Validate lesson exists
+    lesson = Lesson.query.get(lesson_id)
+    if not lesson:
+        return jsonify({"error": "Lesson not found"}), 404
+    
+    # Check if user is enrolled in the course
+    enrollment = Enrollment.query.filter_by(
+        user_id=user_id,
+        course_id=lesson.course_id
+    ).first()
+    
+    if not enrollment:
+        return jsonify({"error": "User not enrolled in this course"}), 403
+    
+    try:
+        # Get or create student progress record
+        progress = StudentProgress.query.filter_by(
+            user_id=user_id, 
+            lesson_id=lesson_id
+        ).first()
+        
+        if not progress:
+            progress = StudentProgress(
+                user_id=user_id,
+                lesson_id=lesson_id
+            )
+            db.session.add(progress)
+        
+        # Update progress
+        progress.completed = True
+        progress.completed_at = datetime.utcnow()
+        progress.watch_time_seconds = data.get('watchTime', 0)
+        
+        # Update course progress percentage
+        update_course_progress(user_id, lesson.course_id)
+        
+        db.session.commit()
+        
+        # Get updated enrollment data
+        updated_enrollment = Enrollment.query.filter_by(
+            user_id=user_id,
+            course_id=lesson.course_id
+        ).first()
+        
+        return jsonify({
+            "message": "Lesson marked as complete",
+            "progressPercentage": updated_enrollment.progress_percentage,
+            "courseCompleted": updated_enrollment.completed_at is not None
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Failed to update progress"}), 500
+
+@app.route('/api/progress/course/<int:course_id>', methods=['GET'])
+@login_required
+def get_course_progress(course_id):
+    user_id = session.get('user_id')
+    
+    # Check if user is enrolled
+    enrollment = Enrollment.query.filter_by(
+        user_id=user_id,
+        course_id=course_id
+    ).first()
+    
+    if not enrollment:
+        return jsonify({"error": "User not enrolled in this course"}), 404
+    
+    # Get lesson progress details
+    lesson_progress = db.session.query(
+        Lesson,
+        StudentProgress
+    ).outerjoin(
+        StudentProgress,
+        (StudentProgress.lesson_id == Lesson.id) & 
+        (StudentProgress.user_id == user_id)
+    ).filter(
+        Lesson.course_id == course_id
+    ).order_by(Lesson.order_index).all()
+    
+    lessons_data = []
+    for lesson, progress in lesson_progress:
+        lessons_data.append({
+            'lesson': lesson.to_dict(),
+            'completed': progress.completed if progress else False,
+            'completedAt': progress.completed_at.isoformat() if progress and progress.completed_at else None,
+            'watchTime': progress.watch_time_seconds if progress else 0
+        })
+    
+    return jsonify({
+        'enrollment': enrollment.to_dict(),
+        'lessons': lessons_data,
+        'totalLessons': len(lessons_data),
+        'completedLessons': sum(1 for l in lessons_data if l['completed'])
+    }), 200
+
+@app.route('/api/progress/dashboard', methods=['GET'])
+@login_required
+def get_dashboard_stats():
+    user_id = session.get('user_id')
+    
+    # Get all enrollments
+    enrollments = Enrollment.query.filter_by(user_id=user_id).all()
+    
+    total_courses = len(enrollments)
+    completed_courses = sum(1 for e in enrollments if e.completed_at)
+    in_progress_courses = sum(1 for e in enrollments if e.progress_percentage > 0 and not e.completed_at)
+    
+    # Calculate average progress
+    avg_progress = 0
+    if enrollments:
+        avg_progress = sum(e.progress_percentage for e in enrollments) / len(enrollments)
+    
+    # Get total watch time
+    total_watch_time = db.session.query(
+        func.sum(StudentProgress.watch_time_seconds)
+    ).filter_by(user_id=user_id).scalar() or 0
+    
+    return jsonify({
+        'totalCourses': total_courses,
+        'completedCourses': completed_courses,
+        'inProgressCourses': in_progress_courses,
+        'averageProgress': round(avg_progress, 1),
+        'totalWatchTimeMinutes': total_watch_time // 60,
+        'enrollments': [e.to_dict() for e in enrollments]
+    }), 200
+
+@app.route('/api/progress/lesson/<int:lesson_id>/watch-time', methods=['POST'])
+@login_required
+def update_watch_time(lesson_id):
+    user_id = session.get('user_id')
+    data = request.get_json()
+    
+    # Validation
+    if not data.get('watchTime'):
+        return jsonify({"error": "watchTime is required"}), 400
+    
+    watch_time = data.get('watchTime', 0)
+    
+    # Validate lesson exists
+    lesson = Lesson.query.get(lesson_id)
+    if not lesson:
+        return jsonify({"error": "Lesson not found"}), 404
+    
+    # Check if user is enrolled in the course
+    enrollment = Enrollment.query.filter_by(
+        user_id=user_id,
+        course_id=lesson.course_id
+    ).first()
+    
+    if not enrollment:
+        return jsonify({"error": "User not enrolled in this course"}), 403
+    
+    try:
+        # Get or create progress record
+        progress = StudentProgress.query.filter_by(
+            user_id=user_id,
+            lesson_id=lesson_id
+        ).first()
+        
+        if not progress:
+            progress = StudentProgress(
+                user_id=user_id,
+                lesson_id=lesson_id
+            )
+            db.session.add(progress)
+        
+        # Update watch time (only if new time is greater)
+        progress.watch_time_seconds = max(progress.watch_time_seconds, watch_time)
+        
+        # Auto-complete if watched significant portion
+        auto_completed = False
+        if lesson.duration_minutes:
+            watch_percentage = (watch_time / 60) / lesson.duration_minutes
+            if watch_percentage >= 0.9 and not progress.completed:  # 90% threshold
+                progress.completed = True
+                progress.completed_at = datetime.utcnow()
+                auto_completed = True
+                
+                # Update course progress
+                update_course_progress(user_id, lesson.course_id)
+        
+        db.session.commit()
+        
+        response_data = {
+            "message": "Watch time updated",
+            "watchTime": progress.watch_time_seconds
+        }
+        
+        if auto_completed:
+            # Get updated enrollment data
+            updated_enrollment = Enrollment.query.filter_by(
+                user_id=user_id,
+                course_id=lesson.course_id
+            ).first()
+            
+            response_data.update({
+                "autoCompleted": True,
+                "progressPercentage": updated_enrollment.progress_percentage,
+                "courseCompleted": updated_enrollment.completed_at is not None
+            })
+        
+        return jsonify(response_data), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Failed to update watch time"}), 500
+
+@app.route('/api/progress/lesson/<int:lesson_id>/status', methods=['GET'])
+@login_required
+def get_lesson_status(lesson_id):
+    user_id = session.get('user_id')
+    
+    # Validate lesson exists
+    lesson = Lesson.query.get(lesson_id)
+    if not lesson:
+        return jsonify({"error": "Lesson not found"}), 404
+    
+    # Get progress record
+    progress = StudentProgress.query.filter_by(
+        user_id=user_id,
+        lesson_id=lesson_id
+    ).first()
+    
+    if not progress:
+        return jsonify({
+            "completed": False,
+            "watchTime": 0,
+            "completedAt": None
+        }), 200
+    
+    return jsonify({
+        "completed": progress.completed,
+        "watchTime": progress.watch_time_seconds,
+        "completedAt": progress.completed_at.isoformat() if progress.completed_at else None
+    }), 200
+
+@app.route('/api/progress/course/<int:course_id>/reset', methods=['POST'])
+@login_required
+def reset_course_progress(course_id):
+    user_id = session.get('user_id')
+    
+    # Check if user is enrolled
+    enrollment = Enrollment.query.filter_by(
+        user_id=user_id,
+        course_id=course_id
+    ).first()
+    
+    if not enrollment:
+        return jsonify({"error": "User not enrolled in this course"}), 404
+    
+    try:
+        # Get all lessons in this course
+        lessons = Lesson.query.filter_by(course_id=course_id).all()
+        lesson_ids = [lesson.id for lesson in lessons]
+        
+        # Delete all progress records for this course
+        StudentProgress.query.filter(
+            StudentProgress.user_id == user_id,
+            StudentProgress.lesson_id.in_(lesson_ids)
+        ).delete(synchronize_session=False)
+        
+        # Reset enrollment progress
+        enrollment.progress_percentage = 0.0
+        enrollment.completed_at = None
+        
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Course progress reset successfully",
+            "progressPercentage": 0.0
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Failed to reset course progress"}), 500
 @app.route('/api/auth/login', methods=['POST'])
 def login():
     data = request.get_json()
@@ -472,6 +791,62 @@ def get_courses():
             "has_prev": courses.has_prev
         }
     }), 200
+
+
+# get courses for user with lessons
+
+@app.route('/api/courses/<int:course_id>', methods=['GET'])
+def get_single_course_details(course_id):
+    """
+    API endpoint to fetch details for a single course, including lessons,
+    and user-specific data like enrollment status and lesson completion.
+    """
+    try:
+        course = Course.query.filter_by(id=course_id, is_published=True).first()
+        if not course:
+            return jsonify({'message': 'Course not found or not published'}), 404
+
+        user_id = session.get('user_id')
+        
+        # Determine if the user is enrolled in this specific course
+        is_enrolled = False
+        if user_id:
+            enrollment = Enrollment.query.filter_by(user_id=user_id, course_id=course.id).first()
+            is_enrolled = enrollment is not None
+
+        course_dict = course.to_dict(include_lessons=True) # Get course dict with all lessons
+
+        # Enhance lessons data with user-specific info and content protection
+        lessons_data = []
+        for lesson in course.lessons:
+            lesson_dict = lesson.to_dict()
+            
+            # Check if lesson is completed by the current user
+            lesson_dict['isCompleted'] = False
+            if user_id:
+                progress = StudentProgress.query.filter_by(user_id=user_id, lesson_id=lesson.id, completed=True).first()
+                if progress:
+                    lesson_dict['isCompleted'] = True
+            
+            # Content protection: If user is not enrolled AND lesson is not free, hide video/description
+            if not is_enrolled and not lesson.is_free:
+                lesson_dict['videoUrl'] = None # Hide video URL
+                lesson_dict['description'] = 'Enroll in the course to unlock this lesson.' # Generic message
+                # You might also want to filter out documents or other sensitive data here
+                lesson_dict['documents'] = [] # Hide documents for locked lessons
+
+            lessons_data.append(lesson_dict)
+        
+        course_dict['lessons'] = lessons_data
+        course_dict['isEnrolled'] = is_enrolled # Add course-level enrollment status
+
+        return jsonify(course_dict), 200
+
+    except Exception as e:
+        db.session.rollback() # Rollback in case of DB error
+        print(f"Error fetching single course details: {e}")
+        return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
+
 
 @app.route('/api/courses/<int:course_id>', methods=['GET'])
 def get_course_details(course_id):
@@ -661,6 +1036,28 @@ def handle_enrollment_request():
     except Exception as e:
         print(f"Error sending email: {e}")
         return jsonify({"message": "Failed to send enrollment request email."}), 500
+
+
+# @course_bp.route('/<int:course_id>/lessons', methods=['GET'])
+@app.route('/api/courses/<int:course_id>/lessons', methods=['GET'])
+def get_course_lessons(course_id):
+    """
+    Fetches all lessons for a specific course ID.
+    """
+    course = Course.query.get(course_id)
+
+    if not course:
+        return jsonify({"message": "Course not found"}), 404
+
+    # The lessons are already loaded due to the 'lessons' relationship
+    # and ordered by 'order_index' as defined in the Course model relationship.
+    lessons_data = [lesson.to_dict() for lesson in course.lessons]
+
+    return jsonify({
+        "course_id": course.id,
+        "course_title": course.title,
+        "lessons": lessons_data
+    }), 200
 
 @app.route('/api/courses/<int:course_id>/lessons/<int:lesson_id>/progress', methods=['POST'])
 @login_required

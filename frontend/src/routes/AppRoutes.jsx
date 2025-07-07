@@ -6,6 +6,7 @@ import AuthPage  from '../components/AuthPage';
 import UserProfiles from '../components/UserProfiles.jsx';
 import AdminCourseManagement from '../components/AdminCourseManagement.jsx';
 import CourseBrowser from '../components/CourseBrowser.jsx';
+import StudentDashboard  from '../components/StudentDashboard.jsx';
 const AppRoutes = () => {
   return (
     <Routes>
@@ -18,7 +19,7 @@ const AppRoutes = () => {
               <Route path="/UserProfiles" element={<UserProfiles />} />
               <Route path="/AdminCourseManagement" element={<AdminCourseManagement />} />
               <Route path="/CourseBrowser" element={<CourseBrowser />} />
-
+   <Route path="/StudentDashboard" element={<StudentDashboard />} />
     </Routes>
   );
 };

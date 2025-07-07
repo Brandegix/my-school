@@ -304,7 +304,6 @@ const UserProfiles = () => {
     
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4">
       {/* Animated Background Elements */}
-       <NavBar scrolled={scrolled} />
        <div className="h-30" /> {/* Spacer */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
@@ -653,7 +652,6 @@ const UserProfiles = () => {
         </div>
       </div>
       <div className="h-20" /> {/* Spacer */}
-            <Footer />
 
     </div>
   );
